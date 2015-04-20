@@ -1,11 +1,12 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <title><%= title %></title>
-    <link rel='stylesheet' href='/stylesheets/style.css' />
-  </head>
-  <body>
-    <h1><%= title %></h1>
-    <p>Welcome to <%= title %></p>
-  </body>
-</html>
+<%- include header %>
+
+<div class="container-fluid">
+  <div class="row-fluid">
+    <div class="span12">
+      <div id="map" class="map"></div>
+    </div>
+  </div>
+</div>
+<script src="/javascripts/ol.js"></script>
+<script src="/javascripts/simple.js"></script>
+<%- include footer %>
