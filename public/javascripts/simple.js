@@ -5,8 +5,14 @@ var map = new ol.Map({
   }),
   layers: [
     new ol.layer.Tile({
-      source: new ol.source.MapQuest({layer: 'osm'})
+      source: new ol.source.OSM()
     })
   ],
   target: 'map'
 });
+
+var source = new ol.source.Vector();
+var originLayer = new ol.layer.Vector();
+var smallLayer = new ol.layer.Vector();
+var bigLayer = new ol.layer.Vector();
+var gridLayer = new ol.layer.Vector();
