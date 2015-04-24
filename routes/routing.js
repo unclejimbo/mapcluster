@@ -1,7 +1,9 @@
 var index = require('./index');
-var poi = require('./poi');
+var features = require('./features');
 
 module.exports = function(app) {
     app.get('/', index.show);
-    app.get('/poi/all', poi.all);
+    app.get('/features', features.show);
+    app.get('/features/all', features.all);
+    app.post('/features', features.saveone);
 };
