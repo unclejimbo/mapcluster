@@ -1,6 +1,4 @@
 var mongoose = require('mongoose');
-var settings = require('../settings');
-//var db = mongoose.createConnection(settings.host, settings.db, settings.port);
 mongoose.connect('mongodb://localhost/mapcluster');
 var db = mongoose.connection;
 db.on('open', function(callback){
@@ -34,6 +32,13 @@ Poi.prototype.save = function(poi, callback) {
 Poi.prototype.findAll = function(callback) {
     PoiModel.find(function(err, pois){
         callback(err, pois);
+    });
+};
+
+// update poi
+Poi.prototype.update = function(query, poi, callback) {
+    PoiModel.update(query, poi, function(err) {
+        callback(err);
     });
 };
 

@@ -16,6 +16,7 @@
     "mongoose-geojson-schema": "0.0.2",
     "morgan": "~1.5.1",
     "openlayers": "^3.3.0",
+    "proj4": "^2.3.6",
     "serve-favicon": "~2.2.0"
   }
 }

@@ -6,4 +6,5 @@ module.exports = function(app) {
     app.get('/features', features.show);
     app.get('/features/all', features.all);
     app.post('/features', features.saveone);
+    app.post('/features/update/:id', features.update);
 };
