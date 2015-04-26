@@ -35,6 +35,17 @@ Poi.prototype.findAll = function(callback) {
     });
 };
 
+// retrieve pois within viewport
+Poi.prototype.findVisible = function(extent, callback) {
+    var lowerLeft = [extent[0], extent[1]];
+    var upperRight = [extent[2], extent[3]];
+    var query = PoiModel.find();
+    query.where('geometry').within().box(lowerLeft, upperRight);
+    query.exec(function(err, pois) {
+        callback(err, pois);
+    });
+};
+
 // update poi
 Poi.prototype.update = function(query, poi, callback) {
     PoiModel.update(query, poi, function(err) {

@@ -1,14 +1,28 @@
 var Poi = require('../models/Poi');
 var makeMCode = require('../utils/makeMCode');
 var cons = require('../utils/constants');
+var proj = require('../utils/projection');
 var MAX_ZOOM = cons.MAX_ZOOM;
 var bodyParser = require('body-parser');
 var express = require('express');
 var app = express();
 app.use(bodyParser.urlencoded({extended:false}));
 
-exports.show = function(req, res) {
-    res.render('features', {title:'MapCluster'});
+exports.findVisible = function(req, res) {
+    var xmin = parseFloat(req.query.xmin);
+    var ymin = parseFloat(req.query.ymin);
+    var xmax = parseFloat(req.query.xmax);
+    var ymax = parseFloat(req.query.ymax);
+    var lonlatmin = new Array(2);
+    var lonlatmax = new Array(2);
+    proj.merc2lonlat([xmin, ymin], lonlatmin);
+    proj.merc2lonlat([xmax, ymax], lonlatmax);
+    var extent = [lonlatmin[0], lonlatmin[1],
+                  lonlatmax[0], lonlatmax[1]];
+    console.log(extent);
+    Poi.findVisible(extent, function(err, pois) {
+        res.send(pois);
+    });
 };
 
 exports.all = function(req, res) {
@@ -17,7 +31,7 @@ exports.all = function(req, res) {
     });
 };
 
-exports.saveone = function(req, res) {
+exports.add = function(req, res) {
     var emptyMCode = new Array(9);
     for (var i = 0; i < emptyMCode.length; ++i) {
         emptyMCode[i] = new Array(MAX_ZOOM);
@@ -58,7 +72,7 @@ exports.update = function(req, res) {
         geometry: {
             type: 'Point',
             coordinates: [new Number(f.geometry.coordinates[0]),
-                          new Number(f.geometry.coordinates[0])]
+                          new Number(f.geometry.coordinates[1])]
         },
         properties: {
             impScore: f.impScore,
