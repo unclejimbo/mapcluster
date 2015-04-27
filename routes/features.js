@@ -2,7 +2,7 @@ var Poi = require('../models/Poi');
 var makeMCode = require('../utils/makeMCode');
 var cons = require('../utils/constants');
 var proj = require('../utils/projection');
-var MAX_ZOOM = cons.MAX_ZOOM;
+var CODE_LEN = cons.MAX_ZOOM + 4;
 var bodyParser = require('body-parser');
 var express = require('express');
 var app = express();
@@ -34,7 +34,7 @@ exports.all = function(req, res) {
 exports.add = function(req, res) {
     var emptyMCode = new Array(9);
     for (var i = 0; i < emptyMCode.length; ++i) {
-        emptyMCode[i] = new Array(MAX_ZOOM);
+        emptyMCode[i] = new Array(CODE_LEN);
     }
     var cnt = req.body.cnt;  // features count
     var poi = {
@@ -52,7 +52,7 @@ exports.add = function(req, res) {
             dScore: 0
         }
     };
-    makeMCode(poi, MAX_ZOOM);
+    makeMCode(poi, CODE_LEN);
     Poi.save(poi, function(err) {
         res.send(err);
     });
@@ -60,28 +60,47 @@ exports.add = function(req, res) {
 
 exports.update = function(req, res) {
     var f = req.body.feature;
-    if (f.hasOwnProperty('mCode'))
-        return;
-    var emptyMCode = new Array(9);
-    for (var i = 0; i < emptyMCode.length; ++i) {
-        emptyMCode[i] = new Array(MAX_ZOOM);
+    var prop = f.properties;
+
+    var imgUrl = '';
+    if (prop.hasOwnProperty('imgUrl')) {
+        imgUrl = prop.imgUrl;
     }
+    
+    var impScore = 0;
+    if (prop.hasOwnProperty('impScore'))
+        impScore = prop.impScore;
+    
+    var mCode = new Array(9);
+    for (var i = 0; i < mCode.length; ++i) {
+        mCode[i] = new Array(CODE_LEN);
+    }
+    if (prop.hasOwnProperty('mCode'))
+        mCode = prop.mCode;
+    
+    var dScore = new Array(CODE_LEN);
+    for (var i = 0; i < dScore.length; ++i) {
+        dScore[i] = 0;
+    }
+    if (prop.hasOwnProperty('dScore'))
+        dScore = prop.dScore;
+    
     var poi = {
         id: f.id,
         type: 'Feature',
         geometry: {
             type: 'Point',
-            coordinates: [new Number(f.geometry.coordinates[0]),
-                          new Number(f.geometry.coordinates[1])]
+            coordinates: [parseFloat(f.geometry.coordinates[0]),
+                          parseFloat(f.geometry.coordinates[1])]
         },
         properties: {
-            impScore: f.impScore,
-            imgUrl: f.imgUrl,
-            mCode: emptyMCode,
-            dScore: 0
+            impScore: impScore,
+            imgUrl: imgUrl,
+            mCode: mCode,
+            dScore: dScore
         }
     };
-    makeMCode(poi, MAX_ZOOM);
+    makeMCode(poi, CODE_LEN);
     Poi.update({id: poi.id}, poi, function(err) {
         res.send(err);
     });
