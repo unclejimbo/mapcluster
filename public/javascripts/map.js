@@ -6,23 +6,24 @@ var MAX_ZOOM = 20;
 // cluster is based on this distinctive score
 // feature should be an array of GeoJSON feature objects
 function dScore(features, level, extent) {
+    ++level;
     var xOffset = [       0,   MERC/3, 2*MERC/3,
                    2*MERC/3,   MERC/3,        0,
-                          0,        0, 2*MERC/3];
+                          0,   MERC/3, 2*MERC/3];
     var yOffset = [       0,        0,        0,
                      MERC/3,   MERC/3,   MERC/3,
                    2*MERC/3, 2*MERC/3, 2*MERC/3];
-    for (index = 0; index < 9; ++index) {
+    for (var index = 0; index < 9; ++index) {
         var left = extent[0] + xOffset[index];
         var bottom = extent[1] + yOffset[index];
         var right = extent[2] + xOffset[index];
         var top = extent[3] + yOffset[index];
-        var gridLen = HALF_MERC/(Math.pow(2,level));
+        var gridLen = MERC/(Math.pow(2,level));
         // x, y are grid coords
         var x0 = Math.floor((left+HALF_MERC)/gridLen) - 1;
         var x1 = Math.floor((right+HALF_MERC)/gridLen) + 1;
-        var y0 = Math.floor((bottom+HALF_MERC)/gridLen) + 1;
-        var y1 = Math.floor((top+HALF_MERC)/gridLen) - 1;
+        var y0 = Math.floor((bottom+HALF_MERC)/gridLen) - 1;
+        var y1 = Math.floor((top+HALF_MERC)/gridLen) + 1;
         var vipArr = new Array(x1-x0+1);
         for (var i = 0; i < vipArr.length; ++i) {
             vipArr[i] = new Array(y1-y0+1);
@@ -45,10 +46,15 @@ function dScore(features, level, extent) {
                             y += Math.pow(2, level-j)*1; break;
                 }
             }
-            x < x0 ? xt = x - x0 + Math.pow(2, level+1) :
+            //x < x0 ? xt = x - x0 + Math.pow(2, level+1) :
                      xt = x - x0;
-            y < y0 ? yt = y - y0 + Math.pow(2, level+1) :
+            // y < y0 ? yt = y - y0 + Math.pow(2, level+1) :
                      yt = y - y0;
+            var feature = new ol.format.GeoJSON().readFeature(features[i], {
+                dataProjection: 'EPSG:4326',
+                featureProjection: 'EPSG:900913'
+            });
+            var coord = feature.getGeometry().getCoordinates();
             if (features[i].properties.impScore > vipArr[xt][yt]) 
                 vipArr[xt][yt] = features[i];
         }
@@ -64,7 +70,7 @@ function dScore(features, level, extent) {
 function quadTreeCluster(features, level, DS) {
     var clustered = new Array();
     for (var i = 0; i < features.length; ++i) {
-        if (features[i].getProperties().dScore[level] >= DS)
+        if (features[i].getProperties().dScore[level+1] >= DS)
             clustered.push(features[i]);
     }
     return clustered;
@@ -89,8 +95,6 @@ map.addControl(new ol.control.ZoomSlider);
 map.addControl(new ol.control.LayerSwitcher);
 
 var app = angular.module('myApp', []);
-var mapExtent = map.getView().calculateExtent(map.getSize());
-var gridLen = HALF_MERC / Math.pow(2, map.getView.getZoom());
 app.controller('mapCtrl', function($http) {
     // uncomment this when you import geojson files into mongodb
     // and need to initialize feature properties, including mortonCode
@@ -100,7 +104,9 @@ app.controller('mapCtrl', function($http) {
             $http.post(url, {feature: fj});
         });
     }); */
-    
+    var mapExtent = map.getView().calculateExtent(map.getSize());
+    var zoom = map.getView().getZoom();
+    var gridLen = HALF_MERC / Math.pow(2, zoom + 1);
     var promise = $http({url: 'http://localhost:3000/features',
                          method: 'GET',
                          params: {xmin: mapExtent[0] - gridLen,
@@ -108,7 +114,7 @@ app.controller('mapCtrl', function($http) {
                                   xmax: mapExtent[2] + gridLen,
                                   ymax: mapExtent[3] + gridLen}});
     promise.success(function(JSONs) {
-        var cnt = 0;
+        dScore(JSONs, zoom+2, mapExtent);
         var originSource = new ol.source.Vector();
         var originFeatures = new Array();
         JSONs.forEach(function(fj) {
@@ -117,7 +123,6 @@ app.controller('mapCtrl', function($http) {
                 featureProjection: 'EPSG:900913'
             });
             originFeatures.push(originFeature);
-            ++cnt;
         });
         originSource.addFeatures(originFeatures);
         var originLayer = new ol.layer.Vector({
@@ -126,14 +131,13 @@ app.controller('mapCtrl', function($http) {
         });
         map.addLayer(originLayer);
 
-        var zoom = map.getView().getZoom();
-
-        var bigSource = new ol.source.Vector();
-        dScore(JSONs, zoom+2, mapExtent);
-        var bigFeatures = quadTreeCluster(originFeature, zoom+2, 9);
+        var bigSource = new ol.source.Vector({
+            projection: 'EPSG:900913'
+        });
+        var bigFeatures = quadTreeCluster(originFeatures, zoom+2, 9);
         bigSource.addFeatures(bigFeatures);
         var bigLayer = new ol.layer.Vector({
-            source: bigLayer,
+            source: bigSource,
             title: 'Big Layer'
         });
         map.addLayer(bigLayer);

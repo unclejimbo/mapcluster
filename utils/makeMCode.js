@@ -4,32 +4,32 @@ var MERC = cons.MERC;
 var proj = require('./projection.js');
 
 function makeMortonCode(feature, offset, level, numLevels, x0, y0) {
-    var extent = cons.HALF_MERC / (Math.pow(2, level));
+    var gridLen = HALF_MERC / (Math.pow(2, level));
     var xy = feature.geometry.coordinates;
     if (level < numLevels) {
         if (xy[0] <= x0 && xy[1] <= y0) {
             feature.properties.mCode[offset][level] = 0;
-            return makeMortonCode(feature, offset, level+1, numLevels, x0-extent,y0-extent);
+            return makeMortonCode(feature, offset, level+1, numLevels, x0-gridLen,y0-gridLen);
         } else if (xy[0] > x0 && xy[1] <= y0) {
             feature.properties.mCode[offset][level] = 1;
-            return makeMortonCode(feature, offset, level+1, numLevels, x0+extent,y0-extent);
+            return makeMortonCode(feature, offset, level+1, numLevels, x0+gridLen,y0-gridLen);
         } else if (xy[0] <= x0 && xy[1] > y0) {
             feature.properties.mCode[offset][level] = 2;
-            return makeMortonCode(feature, offset, level+1, numLevels, x0-extent,y0+extent);
+            return makeMortonCode(feature, offset, level+1, numLevels, x0-gridLen,y0+gridLen);
         } else {
             feature.properties.mCode[offset][level] = 3;
-            return makeMortonCode(feature, offset, level+1, numLevels, x0+extent,y0+extent);
+            return makeMortonCode(feature, offset, level+1, numLevels, x0+gridLen,y0+gridLen);
         }
     } else return;
 }
 
 function featureShift(feature, xOffset, yOffset) {
     feature.geometry.coordinates[0] += xOffset;
-    if (feature.geometry.coordinates[0] > HALF_MERC)
-        feature.geometry.coordinates[0] -= MERC;
+    //if (feature.geometry.coordinates[0] > HALF_MERC)
+        //feature.geometry.coordinates[0] -= MERC;
     feature.geometry.coordinates[1] += yOffset;
-    if (feature.geometry.coordinates[1] > HALF_MERC)
-        feature.geometry.coordinates[1] -= MERC;
+    //if (feature.geometry.coordinates[1] > HALF_MERC)
+        //feature.geometry.coordinates[1] -= MERC;
 }
 
 function makeMCode(feature, numLevels) {
@@ -45,7 +45,8 @@ function makeMCode(feature, numLevels) {
     feature.geometry.coordinates = xy;
     for (var i = 0; i < 9; ++i) {
         featureShift(feature, xOffset[i], yOffset[i]);
-        makeMortonCode(feature, i, 0, numLevels, 0, 0);
+        // computing one more level to handle boundary issues
+        makeMortonCode(feature, i, 0, numLevels + 1, HALF_MERC, HALF_MERC);
     }
     feature.geometry.coordinates = lonlat;
 }
