@@ -1,16 +1,16 @@
 /*
-  Cluster an array of GeoJSON Features or Feature Collection and gives
+  Cluster an array of GeoJSON Features or FeatureCollection and gives
   none-overlapping results for rendering on a map.
   
   Parameters:
-    geoJSONS   <Array(GeoJSON Features) | GeoJSON Feature Collection>
+    geoJSONS   <Array(Feature Object) | FeatureCollection>
     extent     <Array(Number)> in forms of [minx, miny, max, maxy]
     zoom       <Number> the current zoom of the map
     (opt)size  <Number> size of the img in pixels, default 40px
     (opt)DS    <Number> distinctive score, ranging [0, 9], default 9
 
   Returns:
-    <Array(GeoJSON Features) | GeoJSON Feature Collection> same as input
+    <Array(Feature Object) | FeatureCollection> same as input
 
   Notes:
     1. Make sure you have "mCode" and "impScore" in field "properties".
@@ -27,7 +27,9 @@ function mapcluster(geoJSONs, extent, zoom, size, DS) {
     var MAX_RESOLUTION = 156543.033906;
     var resolution = MAX_RESOLUTION / Math.pow(2, zoom);    
     var level = zoom;
-
+    if (geoJSONs.type == 'FeatureCollection') 
+        geoJSONs = geoJSONs.features;
+    
     do {
         var gridLen = HALF_MERC / Math.pow(2, level);
         var imgLen = size * resolution;
