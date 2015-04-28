@@ -3,6 +3,19 @@ var HALF_MERC = 20037508.34;
 var PI = 245850922 / 78256779;
 var MAX_ZOOM = 20;
 
+function createStyle(uri, size) {
+    var img = new ol.style.Icon({
+        src: '/images/' + uri,
+        size: [size,size],
+        offset: [0,0],
+        offsetOrigin: 'top-left'
+    });
+    var style = new ol.style.Style({
+        image: img
+    });
+    return style;
+}
+
 var map = new ol.Map({
     view: new ol.View({
         center: [0, 0],
@@ -21,6 +34,31 @@ var map = new ol.Map({
 map.addControl(new ol.control.ZoomSlider);
 map.addControl(new ol.control.LayerSwitcher);
 
+var fill = new ol.style.Fill({
+    color: [255,255,255,0.4]
+});
+var stroke = new ol.style.Stroke({
+    color: [0,150,255,1],
+    width: 1.0
+});
+var originLayer = new ol.layer.Vector({
+    title: 'Origin Layer',
+    style: new ol.style.Style({
+        fill: fill,
+        stroke: stroke,
+        image: new ol.style.Circle({
+            radius: 3,
+            fill: fill,
+            stroke: stroke
+        })
+    })
+});
+map.addLayer(originLayer);
+var bigLayer = new ol.layer.Vector({
+    title: 'Big Layer'
+});
+map.addLayer(bigLayer);
+
 var app = angular.module('myApp', []);
 app.controller('mapCtrl', function($http) {
     // uncomment this when you import geojson files into mongodb
@@ -31,68 +69,50 @@ app.controller('mapCtrl', function($http) {
             $http.post(url, {feature: fj});
         });
     }); */
-    var mapExtent = map.getView().calculateExtent(map.getSize());
-    var zoom = map.getView().getZoom();
-    var gridLen = HALF_MERC / Math.pow(2, zoom + 1);
-    var promise = $http({url: 'http://localhost:3000/features',
-                         method: 'GET',
-                         params: {xmin: mapExtent[0] - gridLen,
-                                  ymin: mapExtent[1] - gridLen,
-                                  xmax: mapExtent[2] + gridLen,
-                                  ymax: mapExtent[3] + gridLen}});
-    promise.success(function(JSONs) {       
-        var originSource = new ol.source.Vector();
-        var originFeatures = new Array();
-        JSONs.forEach(function(fj) {
-            var originFeature = new ol.format.GeoJSON().readFeature(fj, {
-                dataProjection: 'EPSG:4326',
-                featureProjection: 'EPSG:900913'
+    
+    function redraw() {   
+        var mapExtent = map.getView().calculateExtent(map.getSize());
+        var zoom = map.getView().getZoom();
+        var gridLen = HALF_MERC / Math.pow(2, zoom + 1);
+        var promise = $http({url: 'http://localhost:3000/features',
+                             method: 'GET',
+                             params: {xmin: mapExtent[0] - gridLen,
+                                      ymin: mapExtent[1] - gridLen,
+                                      xmax: mapExtent[2] + gridLen,
+                                      ymax: mapExtent[3] + gridLen}});
+        promise.success(function(JSONs) {       
+            var originSource = new ol.source.Vector();
+            var originFeatures = new Array();
+            JSONs.forEach(function(fj) {
+                var originFeature = new ol.format.GeoJSON().readFeature(fj, {
+                    dataProjection: 'EPSG:4326',
+                    featureProjection: 'EPSG:900913'
+                });
+                originFeatures.push(originFeature);
             });
-            originFeatures.push(originFeature);
-        });
-        originSource.addFeatures(originFeatures);
-        var originLayer = new ol.layer.Vector({
-            source: originSource,
-            title: 'Origin Layer'
-        });
-        map.addLayer(originLayer);
+            originSource.addFeatures(originFeatures);
+            originLayer.setSource(originSource);
 
-         var fill = new ol.style.Fill({
-           color: [255,0,0,0.3]
-         });
-         var stroke = new ol.style.Stroke({
-           color: [255.0,0,1],
-           width: 1.25
-         });
-        var img = new ol.style.Icon({
-            src: '/images/1.jpg',
-            size: [40,40]
-        });
-         var styles = [
-           new ol.style.Style({
-             image: img,
-             fill: fill,
-             stroke: stroke
-           })
-         ];
-        var bigJSONs = mapcluster(JSONs, mapExtent, zoom);
-        var bigFeatures = new Array();
-        bigJSONs.forEach(function(bj) {
-            var bigFeature = new ol.format.GeoJSON().readFeature(bj, {
-                dataProjection: 'EPSG:4326',
-                featureProjection: 'EPSG:900913'
+            var bigJSONs = mapcluster(JSONs, mapExtent, zoom);
+            var bigFeatures = new Array();
+            bigJSONs.forEach(function(bj) {
+                var bigFeature = new ol.format.GeoJSON().readFeature(bj, {
+                    dataProjection: 'EPSG:4326',
+                    featureProjection: 'EPSG:900913'
+                });
+                bigFeature.setStyle(createStyle(bj.properties.imgUrl, 40));
+                bigFeatures.push(bigFeature);
             });
-            bigFeatures.push(bigFeature);
+            var bigSource = new ol.source.Vector({
+                projection: 'EPSG:900913'
+            });
+            bigSource.addFeatures(bigFeatures);
+            bigLayer.setSource(bigSource);
         });
-        var bigSource = new ol.source.Vector({
-            projection: 'EPSG:900913'
-        });
-        bigSource.addFeatures(bigFeatures);
-        var bigLayer = new ol.layer.Vector({
-            source: bigSource,
-            title: 'Big Layer',
-            style: styles[0]
-        });
-        map.addLayer(bigLayer);
-    });
+    }
+
+    redraw();
+    map.getView().on('change:resolution', redraw);
+    map.on('moveend', redraw);
 });
+
