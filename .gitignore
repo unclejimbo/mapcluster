@@ -5,3 +5,5 @@ tools
 public/images/
 *~
 *#*
+typings/
+.settings/

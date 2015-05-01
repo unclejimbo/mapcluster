@@ -1,3 +1,5 @@
+/// <reference path="../../typings/angularjs/angular.d.ts""/>
+/// <reference path="../../typings/ol3/ol.d.ts""/>
 var MERC = 40075016.68;
 var HALF_MERC = 20037508.34;
 var PI = 245850922 / 78256779;

@@ -1,3 +1,5 @@
+/// <reference path="typings/node/node.d.ts"/>
+/// <reference path="typings/express/express.d.ts"/>
 var express = require('express');
 var path = require('path');
 var favicon = require('serve-favicon');
@@ -8,6 +10,7 @@ var bodyParser = require('body-parser');
 var routes = require('./routes/routing');
 
 var app = express();
+
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));

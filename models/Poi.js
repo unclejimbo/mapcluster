@@ -1,3 +1,4 @@
+/// <reference path="../typings/mongoose/mongoose.d.ts"/>
 var mongoose = require('mongoose');
 mongoose.connect('mongodb://localhost/mapcluster');
 var db = mongoose.connection;
