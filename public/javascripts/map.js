@@ -4,6 +4,7 @@ var MERC = 40075016.68;
 var HALF_MERC = 20037508.34;
 var PI = 245850922 / 78256779;
 var MAX_ZOOM = 20;
+var MAX_RESOLUTION = 156543.033906;
 
 function createStyle(uri, size) {
     var img = new ol.style.Icon({
@@ -16,6 +17,37 @@ function createStyle(uri, size) {
         image: img
     });
     return style;
+}
+
+function drawGrid(zoom, extent, size) {
+    size = size || 40;
+    var level = zoom;
+    var resolution = MAX_RESOLUTION / Math.pow(2, level);
+    var gridLen; 
+    do {
+        gridLen = HALF_MERC / Math.pow(2, level);
+        var imgLen = size * resolution;
+        var outer = gridLen * 2 / 3;
+        var inner = gridLen * 1 / 3;   
+        if (imgLen > outer)
+            --level;
+        if (imgLen < inner)
+            ++level;
+    } while (imgLen > outer || imgLen < inner)
+    var xmin = extent[0] - gridLen;
+    var xmax = extent[2] + gridLen;
+    var ymin = extent[1] - gridLen;
+    var ymax = extent[3] + gridLen;
+    var lines = new Array();
+    for (var i = xmin; i <=xmax; i += gridLen) {
+        var line = new ol.geom.LineString([[i,ymin], [i,ymax]]);
+        lines.push(new ol.Feature(line));
+    }
+    for (var i = ymin; i <=ymax; i += gridLen) {
+        var line = new ol.geom.LineString([[xmin,i], [xmax,i]]);
+        lines.push(new ol.Feature(line));
+    }
+    return lines;
 }
 
 var map = new ol.Map({
@@ -36,6 +68,10 @@ var map = new ol.Map({
 map.addControl(new ol.control.ZoomSlider);
 map.addControl(new ol.control.LayerSwitcher);
 
+var gridLayer = new ol.layer.Vector({
+    title: 'Grid Layer'
+});
+map.addLayer(gridLayer);
 var fill = new ol.style.Fill({
     color: [255,255,255,0.4]
 });
@@ -110,10 +146,16 @@ app.controller('mapCtrl', function($http) {
             });
             bigSource.addFeatures(bigFeatures);
             bigLayer.setSource(bigSource);
+            
+            var grids = drawGrid(zoom, mapExtent);
+            var gridSource = new ol.source.Vector({
+                projection: 'EPSG:900913'
+            });
+            gridSource.addFeatures(grids);
+            gridLayer.setSource(gridSource);
         });
     }
 
-    redraw();
     map.getView().on('change:resolution', redraw);
     map.on('moveend', redraw);
 });
