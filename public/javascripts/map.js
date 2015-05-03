@@ -98,7 +98,7 @@ var bigLayer = new ol.layer.Vector({
 map.addLayer(bigLayer);
 
 var app = angular.module('myApp', []);
-app.controller('mapCtrl', function($http) {
+app.controller('mapCtrl', function($scope, $http) {
     // uncomment this when you import geojson files into mongodb
     // and need to initialize feature properties, including mortonCode
     /* $http.get('http://localhost:3000/features/all').success(function(res) {
@@ -107,8 +107,9 @@ app.controller('mapCtrl', function($http) {
             $http.post(url, {feature: fj});
         });
     }); */
-    
     function redraw() {   
+        var imgSize = $scope.imgSize || 40;
+        var dScore = $scope.dScore || 9;
         var mapExtent = map.getView().calculateExtent(map.getSize());
         var zoom = map.getView().getZoom();
         var gridLen = HALF_MERC / Math.pow(2, zoom + 1);
@@ -131,14 +132,14 @@ app.controller('mapCtrl', function($http) {
             originSource.addFeatures(originFeatures);
             originLayer.setSource(originSource);
 
-            var bigJSONs = mapcluster(JSONs, mapExtent, zoom);
+            var bigJSONs = mapcluster(JSONs, mapExtent, zoom, imgSize, dScore);
             var bigFeatures = new Array();
             bigJSONs.forEach(function(bj) {
                 var bigFeature = new ol.format.GeoJSON().readFeature(bj, {
                     dataProjection: 'EPSG:4326',
                     featureProjection: 'EPSG:900913'
                 });
-                bigFeature.setStyle(createStyle(bj.properties.imgUrl, 40));
+                bigFeature.setStyle(createStyle(bj.properties.imgUrl, imgSize));
                 bigFeatures.push(bigFeature);
             });
             var bigSource = new ol.source.Vector({
@@ -147,7 +148,7 @@ app.controller('mapCtrl', function($http) {
             bigSource.addFeatures(bigFeatures);
             bigLayer.setSource(bigSource);
             
-            var grids = drawGrid(zoom, mapExtent);
+            var grids = drawGrid(zoom, mapExtent, imgSize);
             var gridSource = new ol.source.Vector({
                 projection: 'EPSG:900913'
             });
@@ -156,6 +157,8 @@ app.controller('mapCtrl', function($http) {
         });
     }
 
+    $scope.onSizeChange = redraw;
+    $scope.onDSChange = redraw;
     map.getView().on('change:resolution', redraw);
     map.on('moveend', redraw);
 });

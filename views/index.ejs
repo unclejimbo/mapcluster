@@ -4,13 +4,24 @@
 <script src="/javascripts/angular.js"></script>
 <script src="/javascripts/ol3-layerswitcher.js"></script>
 <div  ng-app="myApp" ng-controller="mapCtrl">
-<div class="container-fluid">
-  <div class="row-fluid">
-    <div class="span12">
-      <div id="map" class="map"></div>
+  <div class="container-fluid">
+    <div class="row-fluid">
+      <div class="span12">
+        <div id="map" class="map"></div>
+        <div id="info" class="info">
+          <span>ImageSize: <input type="range" min="30" max="100" value="40" 
+                                  ng-model="imgSize" ng-model-options="{updateOn:'blur'}"
+                                  ng-change="onSizeChange()">
+            <span ng-bind="imgSize"/>
+          </span>
+          <span>DScore: <input type="number" min="0" max="9" value="9"
+                               ng-model="dScore" ng-model-options="{updateOn:'blur'}"
+                               ng-change="onDSChange()">
+          </span>
+        </div>
+      </div>
     </div>
   </div>
-</div>
 </div>
 <script src="/javascripts/mapcluster.js"></script>
 <script src="/javascripts/map.js"></script>
