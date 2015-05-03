@@ -12,12 +12,17 @@
           <span>ImageSize: <input type="range" min="30" max="100" value="40" 
                                   ng-model="imgSize" ng-model-options="{updateOn:'blur'}"
                                   ng-change="onSizeChange()">
-            <span ng-bind="imgSize"/>
+            <span ng-bind="imgSize"></span>
           </span>
           <span>DScore: <input type="number" min="0" max="9" value="9"
                                ng-model="dScore" ng-model-options="{updateOn:'blur'}"
                                ng-change="onDSChange()">
-          </span>
+          </span></br>
+          Images in viewport: <span ng-bind="imgCount"></span></br>
+          Big images count: <span ng-bind="bigCount"></span>
+          Big images cluster level: <span ng-bind="bigPercent"></span>
+          Big images query time: <span ng-bind="bigTime"></span>
+          Big images area coverage: <span ng-bind="bigCov"></span></br>
         </div>
       </div>
     </div>

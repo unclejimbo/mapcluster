@@ -131,8 +131,13 @@ app.controller('mapCtrl', function($scope, $http) {
             });
             originSource.addFeatures(originFeatures);
             originLayer.setSource(originSource);
+            $scope.imgCount = originFeatures.length;
 
+            var d = new Date();
+            var start = d.getTime();
             var bigJSONs = mapcluster(JSONs, mapExtent, zoom, imgSize, dScore);
+            d = new Date();
+            var end = d.getTime();
             var bigFeatures = new Array();
             bigJSONs.forEach(function(bj) {
                 var bigFeature = new ol.format.GeoJSON().readFeature(bj, {
@@ -147,6 +152,14 @@ app.controller('mapCtrl', function($scope, $http) {
             });
             bigSource.addFeatures(bigFeatures);
             bigLayer.setSource(bigSource);
+            $scope.bigCount = bigFeatures.length;
+            $scope.bigTime = (end - start) / 1000;
+            var n = new Number($scope.bigCount/$scope.imgCount);
+            $scope.bigPercent = n.toFixed(3);
+            var viewArea = document.getElementById('map').offsetHeight *
+                           document.getElementById('map').offsetWidth;
+            var c = new Number($scope.bigCount*imgSize*imgSize/viewArea);
+            $scope.bigCov = c.toFixed(3);
             
             var grids = drawGrid(zoom, mapExtent, imgSize);
             var gridSource = new ol.source.Vector({
