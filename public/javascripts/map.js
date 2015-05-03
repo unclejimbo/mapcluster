@@ -1,3 +1,4 @@
+/* global mapcluster */
 /// <reference path="../../typings/angularjs/angular.d.ts""/>
 /// <reference path="../../typings/ol3/ol.d.ts""/>
 var MERC = 40075016.68;
@@ -92,6 +93,10 @@ var originLayer = new ol.layer.Vector({
     })
 });
 map.addLayer(originLayer);
+var smallLayer = new ol.layer.Vector({
+    title: 'Small Layer'
+});
+map.addLayer(smallLayer);
 var bigLayer = new ol.layer.Vector({
     title: 'Big Layer'
 });
@@ -136,7 +141,7 @@ app.controller('mapCtrl', function($scope, $http) {
             var d = new Date();
             var start = d.getTime();
             var bigJSONs = mapcluster(JSONs, mapExtent, zoom, imgSize, dScore);
-            d = new Date();
+            var d = new Date();
             var end = d.getTime();
             var bigFeatures = new Array();
             bigJSONs.forEach(function(bj) {
@@ -161,6 +166,32 @@ app.controller('mapCtrl', function($scope, $http) {
             var c = new Number($scope.bigCount*imgSize*imgSize/viewArea);
             $scope.bigCov = c.toFixed(3);
             
+            var d = new Date();
+            var start = d.getTime();
+            var smallJSONs = mapcluster(JSONs, mapExtent, zoom+2, imgSize, dScore);
+            var d = new Date();
+            var end = d.getTime();
+            var smallFeatures = new Array();
+            smallJSONs.forEach(function(sj) {
+                var smallFeature = new ol.format.GeoJSON().readFeature(sj, {
+                    dataProjection: 'EPSG:4326',
+                    featureProjection: 'EPSG:900913'
+                });
+                smallFeature.setStyle(createStyle(sj.properties.imgUrl, imgSize/4));
+                smallFeatures.push(smallFeature);
+            });
+            var smallSource = new ol.source.Vector({
+                projection: 'EPSG:900913'
+            });
+            smallSource.addFeatures(smallFeatures);
+            smallLayer.setSource(smallSource);
+            $scope.smallCount = smallFeatures.length;
+            $scope.smallTime = (end - start) / 1000;
+            var n = new Number($scope.smallCount/$scope.imgCount);
+            $scope.smallPercent = n.toFixed(3);
+            var c = new Number($scope.smallCount*imgSize*imgSize/viewArea/4);
+            $scope.smallCov = c.toFixed(3);
+            
             var grids = drawGrid(zoom, mapExtent, imgSize);
             var gridSource = new ol.source.Vector({
                 projection: 'EPSG:900913'
@@ -175,4 +206,3 @@ app.controller('mapCtrl', function($scope, $http) {
     map.getView().on('change:resolution', redraw);
     map.on('moveend', redraw);
 });
-
