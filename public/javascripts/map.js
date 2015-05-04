@@ -1,4 +1,5 @@
 /* global mapcluster */
+/* global Delaunay */
 /// <reference path="../../typings/angularjs/angular.d.ts""/>
 /// <reference path="../../typings/ol3/ol.d.ts""/>
 var MERC = 40075016.68;
@@ -101,6 +102,10 @@ var bigLayer = new ol.layer.Vector({
     title: 'Big Layer'
 });
 map.addLayer(bigLayer);
+var triLayer = new ol.layer.Vector({
+    title: 'Tri Layer'
+});
+map.addLayer(triLayer);
 
 var app = angular.module('myApp', []);
 app.controller('mapCtrl', function($scope, $http) {
@@ -166,6 +171,28 @@ app.controller('mapCtrl', function($scope, $http) {
             var c = new Number($scope.bigCount*imgSize*imgSize/viewArea);
             $scope.bigCov = c.toFixed(3);
             
+            var bigCoords = new Array();
+            bigJSONs.forEach(function(bj) {
+                var bf = new ol.format.GeoJSON().readFeature(bj, {
+                    dataProjection: 'EPSG:4326',
+                    featureProjection: 'EPSG:900913'
+                });
+                bigCoords.push(bf.getGeometry().getCoordinates());
+            });
+            var tris = Delaunay.triangulate(bigCoords);
+            var triSource = new ol.source.Vector({
+                projection: 'EPSG:900913'
+            });
+            for (var i = 0; i < tris.length; ) {
+                var lr = new ol.geom.LinearRing([bigCoords[tris[i++]], 
+                                                 bigCoords[tris[i++]], 
+                                                 bigCoords[tris[i++]]]);
+                var tri = new ol.geom.Polygon([[]]);
+                tri.appendLinearRing(lr);
+                var triFeature = new ol.Feature(tri);
+                triSource.addFeature(triFeature);
+            }
+            triLayer.setSource(triSource);
             /*var d = new Date();
             var start = d.getTime();
             var smallJSONs = mapcluster(JSONs, mapExtent, zoom+2, imgSize, dScore);
