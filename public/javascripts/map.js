@@ -69,10 +69,10 @@ var map = new ol.Map({
 map.addControl(new ol.control.ZoomSlider);
 map.addControl(new ol.control.LayerSwitcher);
 
-var gridLayer = new ol.layer.Vector({
+/*var gridLayer = new ol.layer.Vector({
     title: 'Grid Layer'
 });
-map.addLayer(gridLayer);
+map.addLayer(gridLayer);*/
 var fill = new ol.style.Fill({
     color: [255,255,255,0.4]
 });
@@ -93,10 +93,10 @@ var originLayer = new ol.layer.Vector({
     })
 });
 map.addLayer(originLayer);
-var smallLayer = new ol.layer.Vector({
+/*var smallLayer = new ol.layer.Vector({
     title: 'Small Layer'
 });
-map.addLayer(smallLayer);
+map.addLayer(smallLayer);*/
 var bigLayer = new ol.layer.Vector({
     title: 'Big Layer'
 });
@@ -166,7 +166,7 @@ app.controller('mapCtrl', function($scope, $http) {
             var c = new Number($scope.bigCount*imgSize*imgSize/viewArea);
             $scope.bigCov = c.toFixed(3);
             
-            var d = new Date();
+            /*var d = new Date();
             var start = d.getTime();
             var smallJSONs = mapcluster(JSONs, mapExtent, zoom+2, imgSize, dScore);
             var d = new Date();
@@ -197,7 +197,7 @@ app.controller('mapCtrl', function($scope, $http) {
                 projection: 'EPSG:900913'
             });
             gridSource.addFeatures(grids);
-            gridLayer.setSource(gridSource);
+            gridLayer.setSource(gridSource);*/
         });
     }
 
