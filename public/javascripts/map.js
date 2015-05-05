@@ -21,8 +21,7 @@ function createStyle(uri, size) {
     return style;
 }
 
-function drawGrid(zoom, extent, size) {
-    size = size || 40;
+function getLevel(zoom, size) {
     var level = zoom;
     var resolution = MAX_RESOLUTION / Math.pow(2, level);
     var gridLen; 
@@ -36,6 +35,13 @@ function drawGrid(zoom, extent, size) {
         if (imgLen < inner)
             ++level;
     } while (imgLen > outer || imgLen < inner)
+    return level;
+}
+
+function drawGrid(zoom, extent, size) {
+    size = size || 40;
+    var level = getLevel(zoom, size);
+    var gridLen = HALF_MERC / Math.pow(2, level);
     var xmin = extent[0] - gridLen;
     var xmax = extent[2] + gridLen;
     var ymin = extent[1] - gridLen;
@@ -133,6 +139,7 @@ app.controller('mapCtrl', function($scope, $http) {
             var originSource = new ol.source.Vector();
             var originFeatures = new Array();
             JSONs.forEach(function(fj) {
+                fj.properties.isBig = false;
                 var originFeature = new ol.format.GeoJSON().readFeature(fj, {
                     dataProjection: 'EPSG:4326',
                     featureProjection: 'EPSG:900913'
@@ -150,6 +157,7 @@ app.controller('mapCtrl', function($scope, $http) {
             var end = d.getTime();
             var bigFeatures = new Array();
             bigJSONs.forEach(function(bj) {
+                bj.properties.isBig = true;
                 var bigFeature = new ol.format.GeoJSON().readFeature(bj, {
                     dataProjection: 'EPSG:4326',
                     featureProjection: 'EPSG:900913'
@@ -193,6 +201,9 @@ app.controller('mapCtrl', function($scope, $http) {
                 triSource.addFeature(triFeature);
             }
             triLayer.setSource(triSource);
+            
+            
+            
             /*var d = new Date();
             var start = d.getTime();
             var smallJSONs = mapcluster(JSONs, mapExtent, zoom+2, imgSize, dScore);
