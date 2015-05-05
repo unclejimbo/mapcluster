@@ -140,10 +140,12 @@ app.controller('mapCtrl', function($scope, $http) {
             var originFeatures = new Array();
             JSONs.forEach(function(fj) {
                 fj.properties.isBig = false;
-                var originFeature = new ol.format.GeoJSON().readFeature(fj, {
-                    dataProjection: 'EPSG:4326',
-                    featureProjection: 'EPSG:900913'
-                });
+                fj.geometry.coordinates = ol.proj.transform(
+                    fj.geometry.coordinates,
+                    'EPSG:4326',
+                    'EPSG:900913'
+                );
+                var originFeature = new ol.format.GeoJSON().readFeature(fj);
                 originFeatures.push(originFeature);
             });
             originSource.addFeatures(originFeatures);
@@ -158,10 +160,7 @@ app.controller('mapCtrl', function($scope, $http) {
             var bigFeatures = new Array();
             bigJSONs.forEach(function(bj) {
                 bj.properties.isBig = true;
-                var bigFeature = new ol.format.GeoJSON().readFeature(bj, {
-                    dataProjection: 'EPSG:4326',
-                    featureProjection: 'EPSG:900913'
-                });
+                var bigFeature = new ol.format.GeoJSON().readFeature(bj);
                 bigFeature.setStyle(createStyle(bj.properties.imgUrl, imgSize));
                 bigFeatures.push(bigFeature);
             });
@@ -179,7 +178,7 @@ app.controller('mapCtrl', function($scope, $http) {
             var c = new Number($scope.bigCount*imgSize*imgSize/viewArea);
             $scope.bigCov = c.toFixed(3);
             
-            var bigCoords = new Array();
+            /*var bigCoords = new Array();
             bigJSONs.forEach(function(bj) {
                 var bf = new ol.format.GeoJSON().readFeature(bj, {
                     dataProjection: 'EPSG:4326',
@@ -200,9 +199,27 @@ app.controller('mapCtrl', function($scope, $http) {
                 var triFeature = new ol.Feature(tri);
                 triSource.addFeature(triFeature);
             }
-            triLayer.setSource(triSource);
-            
-            
+            triLayer.setSource(triSource);*/
+            var tris = Delaunay.triangulate(JSONs, 
+                                            MAX_RESOLUTION/Math.pow(2, zoom)*imgSize*1.6,
+                                            getLevel(zoom, imgSize) + 1);
+            var triSource = new ol.source.Vector({
+                projection: 'EPSG:900913'
+            });
+            var coords = new Array();
+            JSONs.forEach(function (j) {
+                coords.push(j.geometry.coordinates);
+            });
+            for (var i = 0; i < tris.length; ) {
+                var lr = new ol.geom.LinearRing([coords[tris[i++]], 
+                                                 coords[tris[i++]], 
+                                                 coords[tris[i++]]]);
+                var tri = new ol.geom.Polygon([[]]);
+                tri.appendLinearRing(lr);
+                var triFeature = new ol.Feature(tri);
+                triSource.addFeature(triFeature);
+            }
+            triLayer.setSource(triSource);        
             
             /*var d = new Date();
             var start = d.getTime();

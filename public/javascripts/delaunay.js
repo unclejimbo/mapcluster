@@ -106,9 +106,15 @@ var Delaunay;
   }
 
   Delaunay = {
-    triangulate: function(vertices, key) {
-      var n = vertices.length,
-          i, j, indices, st, open, closed, edges, dx, dy, a, b, c;
+    triangulate: function(features, radius, zoom) {
+      var vertices = new Array(), indices1 = new Array(), indices2 = new Array(),
+          i, j, st, open, closed, edges, dx, dy, a, b, c, n = features.length;
+      
+      for (i = 0; i < n; ++i) {
+        vertices.push(features[i].geometry.coordinates);
+        features[i].properties.isBig == true ?
+          indices1.push(i) : indices2.push(i);
+      }
 
       /* Bail if there aren't enough vertices to form any triangles. */
       if(n < 3)
@@ -119,21 +125,17 @@ var Delaunay;
        * later on!) */
       vertices = vertices.slice(0);
 
-      if(key)
-        for(i = n; i--; )
-          vertices[i] = vertices[i][key];
-
-      /* Make an array of indices into the vertex array, sorted by the
-       * vertices' x-position. */
-      indices = new Array(n);
-
-      for(i = n; i--; )
-        indices[i] = i;
-
-      indices.sort(function(i, j) {
+      /* Make two arrays of indices into the vertex array, 
+       * one based on x-position of vertices whose 'isBig' is true,
+       * the other sorted by 'dScore'. */
+      indices1.sort(function(i, j) {
         return vertices[j][0] - vertices[i][0];
       });
-
+      indices2.sort(function(i, j) {
+        return features[j].properties.dScore[zoom] - 
+               features[i].properties.dScore[zoom];
+      });
+      
       /* Next, find the vertices of the supertriangle (which contains all other
        * triangles), and append them onto the end of a (copy of) the vertex
        * array. */
@@ -147,9 +149,10 @@ var Delaunay;
       closed = [];
       edges  = [];
 
-      /* Incrementally add each vertex to the mesh. */
-      for(i = indices.length; i--; edges.length = 0) {
-        c = indices[i];
+      /* Incrementally add each vertex to the mesh. 
+       * First, deal with big features. */
+      for(i = indices1.length; i--; edges.length = 0) {
+        c = indices1[i];
 
         /* For each open triangle, check to see if the current point is
          * inside it's circumcircle. If it is, remove the triangle and add
@@ -177,6 +180,71 @@ var Delaunay;
             open[j].k, open[j].i
           );
           open.splice(j, 1);
+        }
+
+        /* Remove any doubled edges. */
+        dedup(edges);
+
+        /* Add a new triangle for each edge. */
+        for(j = edges.length; j; ) {
+          b = edges[--j];
+          a = edges[--j];
+          open.push(circumcircle(vertices, a, b, c));
+        }
+      }
+      
+      /* Copy any remaining open triangles to the closed list. */
+      for(i = open.length; i--; )
+        closed.push(open[i]);
+      
+      /* And then add other features if there's enough space. */
+      open.length = 0; 
+      open = open.concat(closed);
+      closed.length = 0;
+      
+      for(i = 0; i < indices2.length; ++i) {
+        edges.length = 0;
+        c = indices2[i];
+        var marks = new Array();
+
+        /* For each open triangle, check to see if the current point is
+         * inside it's circumcircle. If it is, remove the triangle and add
+         * it's edges to an edge list. */
+        for(j = open.length; j--; ) {
+          /* If we're outside the circumcircle, skip this triangle. */
+          dx = vertices[c][0] - open[j].x;
+          dy = vertices[c][1] - open[j].y;
+          if(dx * dx + dy * dy - open[j].r > EPSILON)
+            continue;
+            
+          /* If there's not enough space, break. */
+          var x0 = vertices[open[j].i][0], y0 = vertices[open[j].i][1],
+              x1 = vertices[open[j].j][0], y1 = vertices[open[j].j][1],
+              x2 = vertices[open[j].k][0], y2 = vertices[open[j].k][1],
+              dx0 = (x0-vertices[c][0])*(x0-vertices[c][0]) + 
+                    (y0-vertices[c][1])*(y0-vertices[c][1]),
+              dx1 = (x1-vertices[c][0])*(x1-vertices[c][0]) + 
+                    (y1-vertices[c][1])*(y1-vertices[c][1]),
+              dx2 = (x2-vertices[c][0])*(x2-vertices[c][0]) + 
+                    (y2-vertices[c][1])*(y2-vertices[c][1]),
+              r = radius * radius;
+          if (dx0 < r || dx1 < r || dx2 < r) {
+              marks.length = 0; break;
+          }
+          
+          /* Else, mark this indice. */
+          marks.push(j);
+        }
+        
+        /* Remove the triangles related. */
+        for (j = 0; j < marks.length; ++j) {
+          var m = marks[j];
+          edges.push(
+            open[m].i, open[m].j,
+            open[m].j, open[m].k,
+            open[m].k, open[m].i
+          );
+          open.splice(m, 1);
         }
 
         /* Remove any doubled edges. */
