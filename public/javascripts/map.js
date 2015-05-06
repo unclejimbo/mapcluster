@@ -110,6 +110,19 @@ var triLayer = new ol.layer.Vector({
     title: 'Tri Layer'
 });
 map.addLayer(triLayer);
+var fillLayer = new ol.layer.Vector({
+    title: 'Fill Layer',
+    style: new ol.style.Style({
+        fill: fill,
+        stroke: stroke,
+        image: new ol.style.Circle({
+            radius: 10,
+            fill: fill,
+            stroke: stroke
+        })
+    })
+});
+map.addLayer(fillLayer);
 
 var app = angular.module('myApp', []);
 app.controller('mapCtrl', function($scope, $http) {
@@ -126,6 +139,7 @@ app.controller('mapCtrl', function($scope, $http) {
             dScore = $scope.dScore || 9,
             mapExtent = map.getView().calculateExtent(map.getSize()),
             zoom = map.getView().getZoom(),
+            resolution = MAX_RESOLUTION/Math.pow(2, zoom),
             level = getLevel(zoom, imgSize),
             gridLen = MERC / Math.pow(2, level);
             
@@ -178,30 +192,28 @@ app.controller('mapCtrl', function($scope, $http) {
             var c = new Number($scope.bigCount*imgSize*imgSize/viewArea);
             $scope.bigCov = c.toFixed(3);
             
-            /*var bigCoords = new Array();
-            bigJSONs.forEach(function(bj) {
-                var bf = new ol.format.GeoJSON().readFeature(bj, {
-                    dataProjection: 'EPSG:4326',
-                    featureProjection: 'EPSG:900913'
-                });
-                bigCoords.push(bf.getGeometry().getCoordinates());
-            });
-            var tris = Delaunay.triangulate(bigCoords);
-            var triSource = new ol.source.Vector({
+            var fillJSONs = FillSpace.fill(JSONs, mapExtent, level, imgSize*resolution);
+            var fillSource = new ol.source.Vector({
                 projection: 'EPSG:900913'
             });
-            for (var i = 0; i < tris.length; ) {
-                var lr = new ol.geom.LinearRing([bigCoords[tris[i++]], 
-                                                 bigCoords[tris[i++]], 
-                                                 bigCoords[tris[i++]]]);
-                var tri = new ol.geom.Polygon([[]]);
-                tri.appendLinearRing(lr);
-                var triFeature = new ol.Feature(tri);
-                triSource.addFeature(triFeature);
-            }
-            triLayer.setSource(triSource);*/
+            fillJSONs.forEach(function(f) {
+                //var feature = new ol.format.GeoJSON().readFeature(f);
+                var x = f.geometry.coordinates[0], 
+                    y = f.geometry.coordinates[1],
+                    len = imgSize * resolution / 2;
+                var lr = new ol.geom.LinearRing([[x-len,y-len],
+                                                 [x-len,y+len],
+                                                 [x+len,y+len],
+                                                 [x+len,y-len]]);
+                var square = new ol.geom.Polygon([[]]);
+                square.appendLinearRing(lr);
+                var feature = new ol.Feature(square);
+                fillSource.addFeature(feature);
+            });
+            fillLayer.setSource(fillSource);
+            
             var tris = Delaunay.triangulate(JSONs, 
-                                            MAX_RESOLUTION/Math.pow(2, zoom)*imgSize*1.6,
+                                            resolution*imgSize*1.6,
                                             level);
             var triSource = new ol.source.Vector({
                 projection: 'EPSG:900913'
@@ -219,7 +231,7 @@ app.controller('mapCtrl', function($scope, $http) {
                 var triFeature = new ol.Feature(tri);
                 triSource.addFeature(triFeature);
             }
-            triLayer.setSource(triSource);        
+            triLayer.setSource(triSource);
             
             /*var d = new Date();
             var start = d.getTime();
