@@ -24,10 +24,9 @@ function createStyle(uri, size) {
 function getLevel(zoom, size) {
     var level = zoom;
     var resolution = MAX_RESOLUTION / Math.pow(2, level);
-    var gridLen; 
+    var imgLen = size * resolution;
     do {
-        gridLen = HALF_MERC / Math.pow(2, level);
-        var imgLen = size * resolution;
+        var gridLen = MERC / Math.pow(2, level);
         var outer = gridLen * 2 / 3;
         var inner = gridLen * 1 / 3;   
         if (imgLen > outer)
@@ -38,10 +37,9 @@ function getLevel(zoom, size) {
     return level;
 }
 
-function drawGrid(zoom, extent, size) {
+function drawGrid(level, extent, size) {
     size = size || 40;
-    var level = getLevel(zoom, size);
-    var gridLen = HALF_MERC / Math.pow(2, level);
+    var gridLen = MERC / Math.pow(2, level);
     var xmin = extent[0] - gridLen;
     var xmax = extent[2] + gridLen;
     var ymin = extent[1] - gridLen;
@@ -124,11 +122,13 @@ app.controller('mapCtrl', function($scope, $http) {
         });
     }); */
     function redraw() {   
-        var imgSize = $scope.imgSize || 40;
-        var dScore = $scope.dScore || 9;
-        var mapExtent = map.getView().calculateExtent(map.getSize());
-        var zoom = map.getView().getZoom();
-        var gridLen = HALF_MERC / Math.pow(2, zoom + 1);
+        var imgSize = $scope.imgSize || 40,
+            dScore = $scope.dScore || 9,
+            mapExtent = map.getView().calculateExtent(map.getSize()),
+            zoom = map.getView().getZoom(),
+            level = getLevel(zoom, imgSize),
+            gridLen = MERC / Math.pow(2, level);
+            
         var promise = $http({url: 'http://localhost:3000/features',
                              method: 'GET',
                              params: {xmin: mapExtent[0] - gridLen,
@@ -154,7 +154,7 @@ app.controller('mapCtrl', function($scope, $http) {
 
             var d = new Date();
             var start = d.getTime();
-            var bigJSONs = mapcluster(JSONs, mapExtent, zoom, imgSize, dScore);
+            var bigJSONs = mapcluster(JSONs, mapExtent, level, imgSize, dScore);
             var d = new Date();
             var end = d.getTime();
             var bigFeatures = new Array();
@@ -202,7 +202,7 @@ app.controller('mapCtrl', function($scope, $http) {
             triLayer.setSource(triSource);*/
             var tris = Delaunay.triangulate(JSONs, 
                                             MAX_RESOLUTION/Math.pow(2, zoom)*imgSize*1.6,
-                                            getLevel(zoom, imgSize) + 1);
+                                            level);
             var triSource = new ol.source.Vector({
                 projection: 'EPSG:900913'
             });

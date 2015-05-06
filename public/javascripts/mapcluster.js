@@ -21,26 +21,11 @@
     3. Set DS to 9 makes sure there's no overlap. Less DS value will return
        more points but potentially overlapping.
  */
-function mapcluster(geoJSONs, extent, zoom, size, DS) {
+function mapcluster(geoJSONs, extent, level, size, DS) {
     size = size || 40; DS = DS || 9;
-    var HALF_MERC = 20037508.34;
-    var MAX_RESOLUTION = 156543.033906;
-    var resolution = MAX_RESOLUTION / Math.pow(2, zoom);    
-    var level = zoom;
     if (geoJSONs.type == 'FeatureCollection') 
         geoJSONs = geoJSONs.features;
-    
-    do {
-        var gridLen = HALF_MERC / Math.pow(2, level);
-        var imgLen = size * resolution;
-        var outer = gridLen * 2 / 3;
-        var inner = gridLen * 1 / 3;   
-        if (imgLen > outer)
-            --level;
-        if (imgLen < inner)
-            ++level;
-    } while (imgLen > outer || imgLen < inner)
-    
+
     dScore(geoJSONs, level, extent);
     var clustered = new Array();
     for (var i = 0; i < geoJSONs.length; ++i) {
@@ -55,7 +40,6 @@ function mapcluster(geoJSONs, extent, zoom, size, DS) {
   mapCluster is based on this dScore.
  */
 function dScore(features, level, extent) {
-    ++level;
     var xOffset = [       0,   MERC/3, 2*MERC/3,
                    2*MERC/3,   MERC/3,        0,
                           0,   MERC/3, 2*MERC/3];
@@ -108,7 +92,7 @@ function dScore(features, level, extent) {
         for (var i = 0; i < vipArr.length; ++i) {
             for (var j = 0; j < vipArr[i].length; ++j) {
                 if (vipArr[i][j] != -1) 
-                    ++vipArr[i][j].properties.dScore[level];
+                    ++vipArr[i][j].properties.dScore[level+1];
             }
         }
     }
