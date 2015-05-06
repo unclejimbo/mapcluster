@@ -29,7 +29,7 @@ function mapcluster(geoJSONs, extent, level, size, DS) {
     dScore(geoJSONs, level, extent);
     var clustered = new Array();
     for (var i = 0; i < geoJSONs.length; ++i) {
-        if (geoJSONs[i].properties.dScore[level+1] >= DS)
+        if (geoJSONs[i].properties.dScore[level] >= DS)
             clustered.push(geoJSONs[i]);
     }
     return clustered;
@@ -92,7 +92,7 @@ function dScore(features, level, extent) {
         for (var i = 0; i < vipArr.length; ++i) {
             for (var j = 0; j < vipArr[i].length; ++j) {
                 if (vipArr[i][j] != -1) 
-                    ++vipArr[i][j].properties.dScore[level+1];
+                    ++vipArr[i][j].properties.dScore[level];
             }
         }
     }
