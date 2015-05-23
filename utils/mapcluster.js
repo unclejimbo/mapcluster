@@ -1,3 +1,6 @@
+var cons = require('./constants');
+var MERC = cons.MERC;
+var HALF_MERC = cons.HALF_MERC;
 /*
   Cluster an array of GeoJSON Features or FeatureCollection and gives
   none-overlapping results for rendering on a map.
@@ -21,7 +24,7 @@
     3. Set DS to 9 makes sure there's no overlap. Less DS value will return
        more points but potentially overlapping.
  */
-function mapcluster(geoJSONs, extent, level, size, DS) {
+module.exports = function mapcluster(geoJSONs, extent, level, size, DS) {
     size = size || 40; DS = DS || 9;
     if (geoJSONs.type == 'FeatureCollection') 
         geoJSONs = geoJSONs.features;
@@ -33,7 +36,7 @@ function mapcluster(geoJSONs, extent, level, size, DS) {
             clustered.push(geoJSONs[i]);
     }
     return clustered;
-}
+};
 
 /*
   function that computes the distinctive score of the features
@@ -81,11 +84,6 @@ function dScore(features, level, extent) {
             }
             xt = x - x0;
             yt = y - y0;
-            var feature = new ol.format.GeoJSON().readFeature(features[i], {
-                dataProjection: 'EPSG:4326',
-                featureProjection: 'EPSG:900913'
-            });
-            var coord = feature.getGeometry().getCoordinates();
             if (features[i].properties.impScore > vipArr[xt][yt]) 
                 vipArr[xt][yt] = features[i];
         }

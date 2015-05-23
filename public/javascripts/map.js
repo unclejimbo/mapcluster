@@ -74,10 +74,16 @@ var map = new ol.Map({
 map.addControl(new ol.control.ZoomSlider);
 map.addControl(new ol.control.LayerSwitcher);
 
-/*var gridLayer = new ol.layer.Vector({
+var gridLayer = new ol.layer.Vector({
     title: 'Grid Layer'
 });
-map.addLayer(gridLayer);*/
+map.addLayer(gridLayer);
+var heatLayer = new ol.layer.Heatmap({
+    title: 'Heatmap Layer',
+    radius: 50,
+    blur: 80
+});
+map.addLayer(heatLayer);
 var fill = new ol.style.Fill({
     color: [255,255,255,0.4]
 });
@@ -106,10 +112,10 @@ var bigLayer = new ol.layer.Vector({
     title: 'Big Layer'
 });
 map.addLayer(bigLayer);
-var triLayer = new ol.layer.Vector({
+/*var triLayer = new ol.layer.Vector({
     title: 'Tri Layer'
 });
-map.addLayer(triLayer);
+map.addLayer(triLayer);*/
 var fillLayer = new ol.layer.Vector({
     title: 'Fill Layer',
     style: new ol.style.Style({
@@ -126,14 +132,6 @@ map.addLayer(fillLayer);
 
 var app = angular.module('myApp', []);
 app.controller('mapCtrl', function($scope, $http) {
-    // uncomment this when you import geojson files into mongodb
-    // and need to initialize feature properties, including mortonCode
-    /* $http.get('http://localhost:3000/features/all').success(function(res) {
-        res.forEach(function(fj) {
-            var url = 'http://localhost:3000/features/update/' + fj.id;
-            $http.post(url, {feature: fj});
-        });
-    }); */
     function redraw() {   
         var imgSize = $scope.imgSize || 40,
             dScore = $scope.dScore || 9,
@@ -143,17 +141,21 @@ app.controller('mapCtrl', function($scope, $http) {
             level = getLevel(zoom, imgSize),
             gridLen = MERC / Math.pow(2, level);
             
-        var promise = $http({url: 'http://localhost:3000/features',
+        var promise = $http({url: 'http://localhost:3000/features/big',
                              method: 'GET',
                              params: {xmin: mapExtent[0] - gridLen,
                                       ymin: mapExtent[1] - gridLen,
                                       xmax: mapExtent[2] + gridLen,
-                                      ymax: mapExtent[3] + gridLen}});
-        promise.success(function(JSONs) {       
-            var originSource = new ol.source.Vector();
+                                      ymax: mapExtent[3] + gridLen,
+                                      level: level,
+                                      imgSize: imgSize,
+                                      dScore: dScore}});
+        promise.success(function(bigJSONs) {       
+            /*var originSource = new ol.source.Vector();
             var originFeatures = new Array();
             JSONs.forEach(function(fj) {
                 fj.properties.isBig = false;
+                fj.properties.weight = 0;
                 fj.geometry.coordinates = ol.proj.transform(
                     fj.geometry.coordinates,
                     'EPSG:4326',
@@ -164,18 +166,17 @@ app.controller('mapCtrl', function($scope, $http) {
             });
             originSource.addFeatures(originFeatures);
             originLayer.setSource(originSource);
-            $scope.imgCount = originFeatures.length;
+            $scope.imgCount = originFeatures.length;*/
 
-            var d = new Date();
+            /*var d = new Date();
             var start = d.getTime();
             var bigJSONs = mapcluster(JSONs, mapExtent, level, imgSize, dScore);
             var d = new Date();
-            var end = d.getTime();
+            var end = d.getTime();*/
             var bigFeatures = new Array();
             bigJSONs.forEach(function(bj) {
-                bj.properties.isBig = true;
                 var bigFeature = new ol.format.GeoJSON().readFeature(bj);
-                bigFeature.setStyle(createStyle(bj.properties.imgUrl, imgSize));
+                bigFeature.setStyle(createStyle('whu.jpg', imgSize));
                 bigFeatures.push(bigFeature);
             });
             var bigSource = new ol.source.Vector({
@@ -183,19 +184,20 @@ app.controller('mapCtrl', function($scope, $http) {
             });
             bigSource.addFeatures(bigFeatures);
             bigLayer.setSource(bigSource);
-            $scope.bigCount = bigFeatures.length;
+            /*$scope.bigCount = bigFeatures.length;
             $scope.bigTime = (end - start) / 1000;
             var n = new Number($scope.bigCount/$scope.imgCount);
             $scope.bigPercent = n.toFixed(3);
             var viewArea = document.getElementById('map').offsetHeight *
                            document.getElementById('map').offsetWidth;
             var c = new Number($scope.bigCount*imgSize*imgSize/viewArea);
-            $scope.bigCov = c.toFixed(3);
+            $scope.bigCov = c.toFixed(3);*/
             
-            var fillJSONs = FillSpace.fill(JSONs, mapExtent, level, imgSize*resolution);
+            /*var fillJSONs = FillSpace.fill(JSONs, mapExtent, level, imgSize*resolution);
             var fillSource = new ol.source.Vector({
                 projection: 'EPSG:900913'
             });
+            var fillFeatures = new Array();
             fillJSONs.forEach(function(f) {
                 //var feature = new ol.format.GeoJSON().readFeature(f);
                 var x = f.geometry.coordinates[0], 
@@ -207,12 +209,28 @@ app.controller('mapCtrl', function($scope, $http) {
                                                  [x+len,y-len]]);
                 var square = new ol.geom.Polygon([[]]);
                 square.appendLinearRing(lr);
-                var feature = new ol.Feature(square);
-                fillSource.addFeature(feature);
+                fillFeatures.push(new ol.Feature(square));
             });
-            fillLayer.setSource(fillSource);
+            fillSource.addFeatures(fillFeatures);
+            fillLayer.setSource(fillSource);*/
             
-            var tris = Delaunay.triangulate(JSONs, 
+            /*var heatFeatures = new Array();
+            bigJSONs.forEach(function(f) {
+                f.properties.weight = 1;
+            });
+            fillJSONs.forEach(function(f) {
+                f.properties.weight = 1;
+            });
+            JSONs.forEach(function(f) {
+                heatFeatures.push(new ol.format.GeoJSON().readFeature(f));
+            });
+            var heatSource = new ol.source.Vector({
+                projection: 'EPSG:900913'
+            });
+            heatSource.addFeatures(heatFeatures);
+            heatLayer.setSource(heatSource);*/
+            
+            /*var tris = Delaunay.triangulate(JSONs, 
                                             resolution*imgSize*1.6,
                                             level);
             var triSource = new ol.source.Vector({
@@ -231,7 +249,7 @@ app.controller('mapCtrl', function($scope, $http) {
                 var triFeature = new ol.Feature(tri);
                 triSource.addFeature(triFeature);
             }
-            triLayer.setSource(triSource);
+            triLayer.setSource(triSource);*/
             
             /*var d = new Date();
             var start = d.getTime();
@@ -257,15 +275,15 @@ app.controller('mapCtrl', function($scope, $http) {
             var n = new Number($scope.smallCount/$scope.imgCount);
             $scope.smallPercent = n.toFixed(3);
             var c = new Number($scope.smallCount*imgSize*imgSize/viewArea/4);
-            $scope.smallCov = c.toFixed(3);
-            
-            var grids = drawGrid(zoom, mapExtent, imgSize);
-            var gridSource = new ol.source.Vector({
-                projection: 'EPSG:900913'
-            });
-            gridSource.addFeatures(grids);
-            gridLayer.setSource(gridSource);*/
+            $scope.smallCov = c.toFixed(3);*/    
         });
+        
+        var grids = drawGrid(level, mapExtent, imgSize);
+        var gridSource = new ol.source.Vector({
+            projection: 'EPSG:900913'
+        });
+        gridSource.addFeatures(grids);
+        gridLayer.setSource(gridSource);
     }
 
     $scope.onSizeChange = redraw;

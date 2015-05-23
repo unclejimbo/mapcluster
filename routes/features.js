@@ -2,6 +2,7 @@ var Poi = require('../models/Poi');
 var makeMCode = require('../utils/makeMCode');
 var cons = require('../utils/constants');
 var proj = require('../utils/projection');
+var mapcluster = require('../utils/mapcluster');
 var CODE_LEN = cons.MAX_ZOOM + 4;
 var bodyParser = require('body-parser');
 var express = require('express');
@@ -19,9 +20,33 @@ exports.findVisible = function(req, res) {
     proj.merc2lonlat([xmax, ymax], lonlatmax);
     var extent = [lonlatmin[0], lonlatmin[1],
                   lonlatmax[0], lonlatmax[1]];
-    console.log(extent);
     Poi.findVisible(extent, function(err, pois) {
         res.send(pois);
+    });
+};
+
+exports.big = function(req, res) {
+    var xmin = parseFloat(req.query.xmin);
+    var ymin = parseFloat(req.query.ymin);
+    var xmax = parseFloat(req.query.xmax);
+    var ymax = parseFloat(req.query.ymax);
+    var lonlatmin = new Array(2);
+    var lonlatmax = new Array(2);
+    proj.merc2lonlat([xmin, ymin], lonlatmin);
+    proj.merc2lonlat([xmax, ymax], lonlatmax);
+    var extent = [lonlatmin[0], lonlatmin[1],
+                  lonlatmax[0], lonlatmax[1]];
+    Poi.findVisible(extent, function(err, pois) {
+        for (var i = 0; i < pois.length; ++i) {
+            var p = pois[i];
+            var lonlat = p.geometry.coordinates;
+            var merc = new Array(2);
+            proj.lonlat2merc(lonlat, merc);
+            p.geometry.coordinates = merc;
+        }
+        var bigJSONs = mapcluster(pois, [xmin, ymin, xmax, ymax], req.query.level, req.query.imgSize, req.query.dScore);
+        console.log('found' + bigJSONs.length);
+        res.send(bigJSONs);
     });
 };
 

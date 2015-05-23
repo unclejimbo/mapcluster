@@ -41,7 +41,7 @@ Poi.prototype.findVisible = function(extent, callback) {
     var lowerLeft = [extent[0], extent[1]];
     var upperRight = [extent[2], extent[3]];
     var query = PoiModel.find();
-    query.where('geometry').within().box(lowerLeft, upperRight);
+    query.where('geometry').within().box(lowerLeft, upperRight).limit(10000);
     query.exec(function(err, pois) {
         callback(err, pois);
     });
