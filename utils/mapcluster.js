@@ -32,8 +32,10 @@ module.exports = function mapcluster(geoJSONs, extent, level, size, DS) {
     dScore(geoJSONs, level, extent);
     var clustered = new Array();
     for (var i = 0; i < geoJSONs.length; ++i) {
-        if (geoJSONs[i].properties.dScore[level] >= DS)
-            clustered.push(geoJSONs[i]);
+        if (geoJSONs[i].properties.dScore[level] >= DS) {
+            geoJSONs[i].properties.isBig = true;
+            clustered.push(geoJSONs[i]);   
+        }
     }
     return clustered;
 };

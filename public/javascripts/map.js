@@ -11,9 +11,11 @@ var MAX_RESOLUTION = 156543.033906;
 function createStyle(uri, size) {
     var img = new ol.style.Icon({
         src: '/images/' + uri,
-        size: [size,size],
+        size: [128,128],
         offset: [0,0],
-        offsetOrigin: 'top-left'
+        offsetOrigin: 'top-left',
+        scale: size/128,
+        snapToPixel: false
     });
     var style = new ol.style.Style({
         image: img
@@ -141,49 +143,47 @@ app.controller('mapCtrl', function($scope, $http) {
             level = getLevel(zoom, imgSize),
             gridLen = MERC / Math.pow(2, level);
             
-        var promise = $http({url: 'http://localhost:3000/features/big',
+        var promise = $http({url: 'http://localhost:3000/features/big-fill',
                              method: 'GET',
                              params: {xmin: mapExtent[0] - gridLen,
                                       ymin: mapExtent[1] - gridLen,
                                       xmax: mapExtent[2] + gridLen,
                                       ymax: mapExtent[3] + gridLen,
+                                      resolution: resolution,
                                       level: level,
                                       imgSize: imgSize,
                                       dScore: dScore}});
         promise.success(function(bigJSONs) {       
-            /*var originSource = new ol.source.Vector();
-            var originFeatures = new Array();
-            JSONs.forEach(function(fj) {
-                fj.properties.isBig = false;
-                fj.properties.weight = 0;
-                fj.geometry.coordinates = ol.proj.transform(
-                    fj.geometry.coordinates,
-                    'EPSG:4326',
-                    'EPSG:900913'
-                );
-                var originFeature = new ol.format.GeoJSON().readFeature(fj);
-                originFeatures.push(originFeature);
-            });
-            originSource.addFeatures(originFeatures);
-            originLayer.setSource(originSource);
-            $scope.imgCount = originFeatures.length;*/
-
-            /*var d = new Date();
-            var start = d.getTime();
-            var bigJSONs = mapcluster(JSONs, mapExtent, level, imgSize, dScore);
-            var d = new Date();
-            var end = d.getTime();*/
             var bigFeatures = new Array();
+            var fillFeatures = new Array();
             bigJSONs.forEach(function(bj) {
                 var bigFeature = new ol.format.GeoJSON().readFeature(bj);
-                bigFeature.setStyle(createStyle('whu.jpg', imgSize));
-                bigFeatures.push(bigFeature);
+                if (bj.properties.isBig) {
+                    bigFeature.setStyle(createStyle('whu.jpeg', imgSize));
+                    bigFeatures.push(bigFeature);
+                } else {
+                    var x = bj.geometry.coordinates[0], 
+                        y = bj.geometry.coordinates[1],
+                        len = imgSize * resolution / 2;
+                    var lr = new ol.geom.LinearRing([[x-len,y-len],
+                                                     [x-len,y+len],
+                                                     [x+len,y+len],
+                                                     [x+len,y-len]]);
+                    var square = new ol.geom.Polygon([[]]);
+                    square.appendLinearRing(lr);
+                    fillFeatures.push(new ol.Feature(square));
+                }
             });
             var bigSource = new ol.source.Vector({
                 projection: 'EPSG:900913'
             });
             bigSource.addFeatures(bigFeatures);
             bigLayer.setSource(bigSource);
+            var fillSource = new ol.source.Vector({
+                projection: 'EPSG:900913'
+            });
+            fillSource.addFeatures(fillFeatures);
+            fillLayer.setSource(fillSource);
             /*$scope.bigCount = bigFeatures.length;
             $scope.bigTime = (end - start) / 1000;
             var n = new Number($scope.bigCount/$scope.imgCount);
@@ -192,27 +192,6 @@ app.controller('mapCtrl', function($scope, $http) {
                            document.getElementById('map').offsetWidth;
             var c = new Number($scope.bigCount*imgSize*imgSize/viewArea);
             $scope.bigCov = c.toFixed(3);*/
-            
-            /*var fillJSONs = FillSpace.fill(JSONs, mapExtent, level, imgSize*resolution);
-            var fillSource = new ol.source.Vector({
-                projection: 'EPSG:900913'
-            });
-            var fillFeatures = new Array();
-            fillJSONs.forEach(function(f) {
-                //var feature = new ol.format.GeoJSON().readFeature(f);
-                var x = f.geometry.coordinates[0], 
-                    y = f.geometry.coordinates[1],
-                    len = imgSize * resolution / 2;
-                var lr = new ol.geom.LinearRing([[x-len,y-len],
-                                                 [x-len,y+len],
-                                                 [x+len,y+len],
-                                                 [x+len,y-len]]);
-                var square = new ol.geom.Polygon([[]]);
-                square.appendLinearRing(lr);
-                fillFeatures.push(new ol.Feature(square));
-            });
-            fillSource.addFeatures(fillFeatures);
-            fillLayer.setSource(fillSource);*/
             
             /*var heatFeatures = new Array();
             bigJSONs.forEach(function(f) {

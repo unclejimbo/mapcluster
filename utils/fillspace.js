@@ -44,7 +44,6 @@ var FillSpace;
 			});
 			
 			features.forEach(function(f) {
-				f.properties.fill = false;
 				var x  = f.geometry.coordinates[0],
 				    y  = f.geometry.coordinates[1],
 					xt = Math.floor((x+HALF_MERC)/gridLen),
@@ -53,6 +52,7 @@ var FillSpace;
 					dy = yt - y0;
 				if (f.properties.isBig) {	
 					// record big features
+					console.log('hit');
 				    vipArr[dx][dy] = f;
 				} else if (vipArr[dx][dy] == -1) {
 					// check whether there is enough space for this feature

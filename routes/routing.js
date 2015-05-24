@@ -6,6 +6,7 @@ module.exports = function(app) {
     app.get('/features', features.findVisible);
     app.get('/features/all', features.all);
     app.get('/features/big', features.big);
+    app.get('/features/big-fill', features.bigFill);
     app.post('/features', features.add);
     app.post('/features/update/:id', features.update);
 };
