@@ -27,9 +27,9 @@ exports.findVisible = function(req, res) {
 };
 
 exports.big = function(req, res) {
-    var level = req.query.level,
-        imgSize = req.query.imgSize,
-        dScore = req.query.imgSize,
+    var level = parseInt(req.query.level),
+        imgSize = parseInt(req.query.imgSize),
+        dScore = parseInt(req.query.dScore),
         xmin = parseFloat(req.query.xmin),
         ymin = parseFloat(req.query.ymin),
         xmax = parseFloat(req.query.xmax),
@@ -40,7 +40,8 @@ exports.big = function(req, res) {
     proj.merc2lonlat([xmax, ymax], lonlatmax);
     var extent = [lonlatmin[0], lonlatmin[1],
                   lonlatmax[0], lonlatmax[1]];
-    var d = new Date(); var start = d.getTime();
+    var d = new Date(); 
+    var start = d.getTime();
     Poi.findVisible(extent, function(err, pois) {
         pois.forEach(function(p) {
             p.properties.isBig = false;
@@ -60,15 +61,20 @@ exports.big = function(req, res) {
         d = new Date();
         end = d.getTime();
         console.log('cluster:' + (end-start));
-        res.send(bigJSONs);
+        var result = {
+            //origin: pois,
+            big: bigJSONs,
+            count: pois.length
+        };
+        res.send(result);
     });
 };
 
 exports.bigFill = function(req, res) {
-    var level = req.query.level,
-        imgSize = req.query.imgSize,
-        dScore = req.query.dScore,
-        resolution = req.query.resolution,
+    var level = parseInt(req.query.level),
+        imgSize = parseInt(req.query.imgSize),
+        dScore = parseInt(req.query.dScore),
+        resolution = parseFloat(req.query.resolution),
         xmin = parseFloat(req.query.xmin),
         ymin = parseFloat(req.query.ymin),
         xmax = parseFloat(req.query.xmax),
@@ -100,25 +106,136 @@ exports.bigFill = function(req, res) {
         d = new Date();
         end = d.getTime();
         console.log('cluster:' + (end-start));
-        console.log('biglen' + bigJSONs.length);
-        //res.send(bigJSONs);
-        for (var i = 0; i < pois.length; ++i) {
-            if (pois[i].properties.dScore[level] == 9) ;
-                //console.log(i);
-        }
+        console.log('bigCount' + bigJSONs.length);
         d = new Date();
         start = d.getTime();
         var fillJSONs = fillspace.fill(pois, [xmin, ymin, xmax, ymax], level, imgSize*resolution);
         d = new Date();
         end = d.getTime();
         console.log('fill:' + (end-start));
-        var result = bigJSONs.concat(fillJSONs);
-        var cnt = 0;
+        console.log('fillCount' + fillJSONs.length);
+        var result = {
+            //origin: pois,
+            big: bigJSONs,
+            fill: fillJSONs,
+            count: pois.length
+        };
+        res.send(result);
+    });
+};
+
+exports.small = function(req, res) {
+    var level = parseInt(req.query.level),
+        imgSize = parseInt(req.query.imgSize),
+        dScore = parseInt(req.query.dScore),
+        xmin = parseFloat(req.query.xmin),
+        ymin = parseFloat(req.query.ymin),
+        xmax = parseFloat(req.query.xmax),
+        ymax = parseFloat(req.query.ymax),
+        lonlatmin = new Array(2),
+        lonlatmax = new Array(2);
+    proj.merc2lonlat([xmin, ymin], lonlatmin);
+    proj.merc2lonlat([xmax, ymax], lonlatmax);
+    var extent = [lonlatmin[0], lonlatmin[1],
+                  lonlatmax[0], lonlatmax[1]];
+    var d = new Date(); 
+    var start = d.getTime();
+    Poi.findVisible(extent, function(err, pois) {
+        pois.forEach(function(p) {
+            p.properties.isBig = false;
+        });
+        d = new Date(); 
+        var end = d.getTime(); 
+        console.log('query' + (end-start));
+        console.log('in bound' + pois.length);
         for (var i = 0; i < pois.length; ++i) {
-            if (pois[i].properties.isBig)
-              ++cnt;
+            var p = pois[i];
+            var lonlat = p.geometry.coordinates;
+            var merc = new Array(2);
+            proj.lonlat2merc(lonlat, merc);
+            p.geometry.coordinates = merc;
         }
-        console.log('cnt:' + cnt);
+        d = new Date();
+        start = d.getTime();
+        var smallJSONs = mapcluster(pois, [xmin, ymin, xmax, ymax], level + 2, imgSize, dScore);
+        d = new Date();
+        end = d.getTime();
+        console.log('small cluster:' + (end-start));
+        d = new Date();
+        start = d.getTime();
+        var bigJSONs = mapcluster(smallJSONs, [xmin, ymin, xmax, ymax], level, imgSize, dScore);
+        d = new Date();
+        end = d.getTime();
+        console.log('small cluster:' + (end-start));
+        var result = {
+            //origin: pois,
+            big: bigJSONs,
+            small: smallJSONs,
+            count: pois.length
+        };
+        res.send(result);
+    });
+};
+
+exports.smallFill = function(req, res) {
+    var level = parseInt(req.query.level),
+        imgSize = parseInt(req.query.imgSize),
+        dScore = parseInt(req.query.dScore),
+        resolution = parseFloat(req.query.resolution),
+        xmin = parseFloat(req.query.xmin),
+        ymin = parseFloat(req.query.ymin),
+        xmax = parseFloat(req.query.xmax),
+        ymax = parseFloat(req.query.ymax),
+        lonlatmin = new Array(2),
+        lonlatmax = new Array(2);
+    proj.merc2lonlat([xmin, ymin], lonlatmin);
+    proj.merc2lonlat([xmax, ymax], lonlatmax);
+    var extent = [lonlatmin[0], lonlatmin[1],
+                  lonlatmax[0], lonlatmax[1]];
+    var d = new Date(); 
+    var start = d.getTime();
+    Poi.findVisible(extent, function(err, pois) {
+        pois.forEach(function(p) {
+            p.properties.isBig = false;
+        });
+        d = new Date(); 
+        var end = d.getTime(); 
+        console.log('query' + (end-start));
+        console.log('in bound' + pois.length);
+        for (var i = 0; i < pois.length; ++i) {
+            var p = pois[i];
+            var lonlat = p.geometry.coordinates;
+            var merc = new Array(2);
+            proj.lonlat2merc(lonlat, merc);
+            p.geometry.coordinates = merc;
+        }
+        d = new Date();
+        start = d.getTime();
+        var smallJSONs = mapcluster(pois, [xmin, ymin, xmax, ymax], level+2, imgSize, dScore);
+        d = new Date();
+        end = d.getTime();
+        console.log('small cluster:' + (end-start));
+        console.log(smallJSONs.length);
+        d = new Date();
+        start = d.getTime();
+        var bigJSONs = mapcluster(smallJSONs, [xmin, ymin, xmax, ymax], level, imgSize, dScore);
+        d = new Date();
+        end = d.getTime();
+        console.log('big cluster:' + (end-start));
+        d = new Date();
+        start = d.getTime();
+        var fillJSONs = fillspace.fill(pois, [xmin, ymin, xmax, ymax], level, imgSize*resolution);
+        d = new Date();
+        end = d.getTime();
+        console.log('fill:' + (end-start));
+        console.log(smallJSONs.length);
+        var result = {
+            //origin: pois,
+            big: bigJSONs,
+            fill: fillJSONs,
+            small: smallJSONs,
+            count: pois.length
+        };
         res.send(result);
     });
 };

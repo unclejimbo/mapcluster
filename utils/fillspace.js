@@ -52,7 +52,6 @@ var FillSpace;
 					dy = yt - y0;
 				if (f.properties.isBig) {	
 					// record big features
-					console.log('hit');
 				    vipArr[dx][dy] = f;
 				} else if (vipArr[dx][dy] == -1) {
 					// check whether there is enough space for this feature
